@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Tab } from '@headlessui/react';
+import { useAuth } from '../context/AuthContext';
 import { 
   CurrencyDollarIcon, 
   ChartBarIcon,
@@ -183,10 +184,21 @@ const US_STATES = [
 ];
 
 export function Salary() {
+  const { user } = useAuth();
+  
   // Get member ID from URL parameters
   const urlParams = new URLSearchParams(window.location.search);
   const memberId = urlParams.get('memberId');
   const [currentMember, setCurrentMember] = useState<any>(null);
+
+  // Helper function to get user-specific localStorage key
+  const getUserStorageKey = (key: string) => {
+    if (!user?.id) {
+      console.warn('No user ID available, using anonymous key');
+      return `anonymous_${key}`;
+    }
+    return `user_${user.id}_${key}`;
+  };
 
   const [formData, setFormData] = useState({
     grossSalary: '',
@@ -195,7 +207,6 @@ export function Salary() {
     payFrequency: '',
     cityTaxRate: '',
     contribution401k: '',
-    contribution401kType: 'percentage', // 'percentage' or 'dollar'
   });
 
   const [taxBreakdown, setTaxBreakdown] = useState<TaxBreakdown | null>(null);
@@ -222,11 +233,13 @@ export function Salary() {
   ]);
   const [fundProjections, setFundProjections] = useState<FundProjection[]>([]);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
+  const [selectedTimeFrame, setSelectedTimeFrame] = useState<'weekly' | 'semi-monthly' | 'monthly'>('monthly');
 
   // Load household member data if memberId is provided
   useEffect(() => {
-    if (memberId) {
-      const savedMembers = localStorage.getItem('householdMembers');
+    if (memberId && user?.id) {
+      const userStorageKey = getUserStorageKey('householdMembers');
+      const savedMembers = localStorage.getItem(userStorageKey);
       if (savedMembers) {
         const members = JSON.parse(savedMembers);
         const member = members.find((m: any) => m.id === memberId);
@@ -270,13 +283,14 @@ export function Salary() {
         }
       }
     }
-  }, [memberId]);
+  }, [memberId, user?.id]);
 
   // Save comprehensive financial data back to household when it changes (only when there's meaningful progress)
   useEffect(() => {
-    if (memberId && currentMember) {
+    if (memberId && currentMember && user?.id) {
       // Check if member already has complete/finalized data - don't overwrite with incomplete data
-      const savedMembers = localStorage.getItem('householdMembers');
+      const userStorageKey = getUserStorageKey('householdMembers');
+      const savedMembers = localStorage.getItem(userStorageKey);
       if (savedMembers) {
         const members = JSON.parse(savedMembers);
         const existingMember = members.find((m: any) => m.id === memberId);
@@ -369,7 +383,7 @@ export function Salary() {
             ? { ...m, financialData }
             : m
         );
-        localStorage.setItem('householdMembers', JSON.stringify(updatedMembers));
+        localStorage.setItem(userStorageKey, JSON.stringify(updatedMembers));
         
         // Trigger a custom event to notify HomePage of data changes
         window.dispatchEvent(new CustomEvent('householdDataUpdated', { 
@@ -385,7 +399,8 @@ export function Salary() {
     customExpenses, 
     formData, 
     savingsProjection, 
-    customFunds
+    customFunds,
+    user?.id
   ]);
 
   // Recalculate fund projections whenever custom funds change
@@ -479,9 +494,10 @@ export function Salary() {
         }
       };
 
-      if (memberId) {
+      if (memberId && user?.id) {
         // Save to household member
-        const savedMembers = localStorage.getItem('householdMembers');
+        const userStorageKey = getUserStorageKey('householdMembers');
+        const savedMembers = localStorage.getItem(userStorageKey);
         if (savedMembers) {
           const members = JSON.parse(savedMembers);
           const updatedMembers = members.map((m: any) => 
@@ -494,7 +510,7 @@ export function Salary() {
                 }
               : m
           );
-          localStorage.setItem('householdMembers', JSON.stringify(updatedMembers));
+          localStorage.setItem(userStorageKey, JSON.stringify(updatedMembers));
           
           // Trigger update event
           window.dispatchEvent(new CustomEvent('householdDataUpdated', { 
@@ -502,10 +518,11 @@ export function Salary() {
           }));
         }
       } else {
-        // Save as standalone profile
-        const profileKey = `financialProfile_${Date.now()}`;
+        // Save as standalone profile (user-specific)
+        const profileKey = getUserStorageKey(`financialProfile_${Date.now()}`);
+        const lastProfileKey = getUserStorageKey('lastSavedProfile');
         localStorage.setItem(profileKey, JSON.stringify(completeFinancialData));
-        localStorage.setItem('lastSavedProfile', profileKey);
+        localStorage.setItem(lastProfileKey, profileKey);
       }
 
       setSaveStatus('success');
@@ -546,7 +563,6 @@ export function Salary() {
           deductionType: 'standard',
           cityTaxRate: formData.cityTaxRate ? parseFloat(formData.cityTaxRate) : 0,
           contribution401k: formData.contribution401k ? parseFloat(formData.contribution401k) : 0,
-          contribution401kType: formData.contribution401kType,
         }),
       });
 
@@ -878,34 +894,20 @@ export function Salary() {
 
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                          401(k) Contribution
+                          401(k) Contribution (%)
                         </label>
-                        <div className="flex gap-2">
-                          <div className="flex-1">
-                            <div className="relative">
-                              <input
-                                type="number"
-                                step={formData.contribution401kType === 'percentage' ? '0.5' : '100'}
-                                min="0"
-                                max={formData.contribution401kType === 'percentage' ? '100' : undefined}
-                                value={formData.contribution401k}
-                                onChange={(e) => setFormData({...formData, contribution401k: e.target.value})}
-                                className="w-full px-3 py-3 pr-8 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black placeholder-gray-400"
-                                placeholder={formData.contribution401kType === 'percentage' ? '10' : '5000'}
-                              />
-                              <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">
-                                {formData.contribution401kType === 'percentage' ? '%' : '$'}
-                              </span>
-                            </div>
-                          </div>
-                          <select
-                            value={formData.contribution401kType}
-                            onChange={(e) => setFormData({...formData, contribution401kType: e.target.value})}
-                            className="px-3 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black placeholder-gray-400"
-                          >
-                            <option value="percentage">%</option>
-                            <option value="dollar">$</option>
-                          </select>
+                        <div className="relative">
+                          <input
+                            type="number"
+                            step="0.5"
+                            min="0"
+                            max="100"
+                            value={formData.contribution401k}
+                            onChange={(e) => setFormData({...formData, contribution401k: e.target.value})}
+                            className="w-full px-3 py-3 pr-8 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black placeholder-gray-400"
+                            placeholder="10"
+                          />
+                          <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">%</span>
                         </div>
                         <p className="text-xs text-gray-500 mt-1">Pre-tax retirement contribution (reduces taxable income)</p>
                       </div>
@@ -923,9 +925,35 @@ export function Salary() {
                   </div>
                 </div>
 
-                {/* Tax Breakdown */}
-                <div className="bg-white p-6 rounded-lg shadow-sm border">
-                  <h3 className="text-lg font-medium text-gray-900 mb-6">Tax Breakdown</h3>
+                {/* Combined Tax Breakdown & Income Distribution */}
+                <div className="lg:col-span-2 bg-white p-6 rounded-lg shadow-sm border">
+                  <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-lg font-medium text-gray-900 flex items-center">
+                      <ChartPieIcon className="h-5 w-5 mr-2" />
+                      Tax Breakdown & Income Distribution
+                    </h3>
+                    {taxBreakdown && (
+                      <div className="flex bg-gray-100 rounded-lg p-1">
+                        {[
+                          { key: 'weekly', label: 'Weekly', divisor: 52 },
+                          { key: 'semi-monthly', label: 'Semi-Monthly', divisor: 24 },
+                          { key: 'monthly', label: 'Monthly', divisor: 12 }
+                        ].map(timeFrame => (
+                          <button
+                            key={timeFrame.key}
+                            onClick={() => setSelectedTimeFrame(timeFrame.key as 'weekly' | 'semi-monthly' | 'monthly')}
+                            className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                              selectedTimeFrame === timeFrame.key
+                                ? 'bg-white text-blue-600 shadow-sm font-medium'
+                                : 'text-gray-600 hover:text-gray-900'
+                            }`}
+                          >
+                            {timeFrame.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                   
                   {loading && (
                     <div className="flex items-center justify-center py-8">
@@ -934,106 +962,138 @@ export function Salary() {
                   )}
 
                   {taxBreakdown && !loading && (
-                    <div className="space-y-4">
-                      <div className="bg-gray-50 p-4 rounded-md">
-                        <div className="flex justify-between items-center mb-2">
-                          <span className="font-medium text-gray-900">Gross Annual Income</span>
-                          <span className="text-lg font-semibold">{formatCurrency(taxBreakdown.grossIncome)}</span>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      {/* Tax Breakdown Section */}
+                      <div className="space-y-4">
+                        <h4 className="font-semibold text-gray-900 text-base">Tax Breakdown Details</h4>
+                        
+                        <div className="bg-gray-50 p-4 rounded-md">
+                          <div className="flex justify-between items-center mb-2">
+                            <span className="font-medium text-gray-900">Gross Annual Income</span>
+                            <span className="text-lg font-semibold text-green-600">{formatCurrency(taxBreakdown.grossIncome)}</span>
+                          </div>
                         </div>
-                      </div>
 
-                      <div className="space-y-3">
-                        <div className="flex justify-between items-center">
-                          <span className="text-gray-700">Federal Tax</span>
-                          <span className="font-medium text-red-600">-{formatCurrency(taxBreakdown.federal.tax)}</span>
-                        </div>
-                        
-                        {selectedState?.hasStateTax && (
+                        <div className="space-y-3">
                           <div className="flex justify-between items-center">
-                            <span className="text-gray-700">{selectedState.name} State Tax</span>
-                            <span className="font-medium text-red-600">-{formatCurrency(taxBreakdown.state.tax)}</span>
+                            <span className="text-gray-700">Federal Tax</span>
+                            <span className="font-medium text-red-600">-{formatCurrency(taxBreakdown.federal.tax)}</span>
                           </div>
-                        )}
-                        
-                        {taxBreakdown.city && taxBreakdown.city.tax > 0 && (
-                          <div className="flex justify-between items-center">
-                            <span className="text-gray-700">City Tax ({taxBreakdown.city.rate}%)</span>
-                            <span className="font-medium text-red-600">-{formatCurrency(taxBreakdown.city.tax)}</span>
-                          </div>
-                        )}
-                        
-                        <div className="flex justify-between items-center">
-                          <span className="text-gray-700">FICA (Social Security & Medicare)</span>
-                          <span className="font-medium text-red-600">-{formatCurrency(taxBreakdown.fica.totalFica)}</span>
-                        </div>
-                        
-                        {taxBreakdown.retirement && taxBreakdown.retirement.contribution401k > 0 && (
-                          <div className="flex justify-between items-center">
-                            <span className="text-gray-700">401(k) Contribution</span>
-                            <span className="font-medium text-blue-600">-{formatCurrency(taxBreakdown.retirement.contribution401k)}</span>
-                          </div>
-                        )}
-                        
-                        <div className="border-t pt-3">
-                          <div className="flex justify-between items-center">
-                            <span className="font-medium text-gray-900">Total Taxes</span>
-                            <span className="font-semibold text-red-600">-{formatCurrency(taxBreakdown.totalTax)}</span>
-                          </div>
-                          {taxBreakdown.totalDeductions && taxBreakdown.totalDeductions !== taxBreakdown.totalTax && (
-                            <div className="flex justify-between items-center mt-1">
-                              <span className="font-medium text-gray-900">Total Deductions</span>
-                              <span className="font-semibold text-gray-700">-{formatCurrency(taxBreakdown.totalDeductions)}</span>
+                          
+                          {selectedState?.hasStateTax && (
+                            <div className="flex justify-between items-center">
+                              <span className="text-gray-700">{selectedState.name} State Tax</span>
+                              <span className="font-medium text-red-600">-{formatCurrency(taxBreakdown.state.tax)}</span>
                             </div>
                           )}
-                        </div>
-                        
-                        <div className="bg-green-50 p-4 rounded-md">
+                          
+                          {taxBreakdown.city && taxBreakdown.city.tax > 0 && (
+                            <div className="flex justify-between items-center">
+                              <span className="text-gray-700">City Tax ({taxBreakdown.city.rate}%)</span>
+                              <span className="font-medium text-red-600">-{formatCurrency(taxBreakdown.city.tax)}</span>
+                            </div>
+                          )}
+                          
                           <div className="flex justify-between items-center">
-                            <span className="font-medium text-gray-900">Annual Take-Home Pay</span>
-                            <span className="text-xl font-bold text-green-600">{formatCurrency(taxBreakdown.netIncome)}</span>
+                            <span className="text-gray-700">FICA (Social Security & Medicare)</span>
+                            <span className="font-medium text-red-600">-{formatCurrency(taxBreakdown.fica.totalFica)}</span>
                           </div>
-                          <div className="flex justify-between items-center mt-1">
-                            <span className="text-sm text-gray-600">Monthly Take-Home</span>
-                            <span className="text-lg font-semibold text-green-600">{formatCurrency(taxBreakdown.netIncome / 12)}</span>
+                          
+                          {taxBreakdown.retirement && taxBreakdown.retirement.contribution401k > 0 && (
+                            <div className="flex justify-between items-center">
+                              <span className="text-gray-700">401(k) Contribution</span>
+                              <span className="font-medium text-blue-600">-{formatCurrency(taxBreakdown.retirement.contribution401k)}</span>
+                            </div>
+                          )}
+                          
+                          <div className="border-t pt-3 space-y-2">
+                            <div className="flex justify-between items-center">
+                              <span className="font-medium text-gray-900">Total Tax Liability</span>
+                              <span className="font-semibold text-red-600">-{formatCurrency(
+                                taxBreakdown.federal.tax + 
+                                taxBreakdown.state.tax + 
+                                (taxBreakdown.city?.tax || 0) + 
+                                taxBreakdown.fica.totalFica
+                              )}</span>
+                            </div>
+                            {taxBreakdown.retirement && taxBreakdown.retirement.contribution401k > 0 && (
+                              <div className="flex justify-between items-center">
+                                <span className="font-medium text-gray-900">Pre-Tax Deductions</span>
+                                <span className="font-semibold text-blue-600">-{formatCurrency(taxBreakdown.retirement.contribution401k)}</span>
+                              </div>
+                            )}
+                            <div className="flex justify-between items-center">
+                              <span className="font-medium text-gray-900">Total Deductions</span>
+                              <span className="font-semibold text-gray-700">-{formatCurrency(
+                                taxBreakdown.federal.tax + 
+                                taxBreakdown.state.tax + 
+                                (taxBreakdown.city?.tax || 0) + 
+                                taxBreakdown.fica.totalFica + 
+                                (taxBreakdown.retirement?.contribution401k || 0)
+                              )}</span>
+                            </div>
                           </div>
-                        </div>
-                        
-                        <div className="text-sm text-gray-600">
-                          <span>Effective Tax Rate: {formatPercentage(taxBreakdown.effectiveTaxRate)}</span>
+                          
+                          <div className="text-sm text-gray-600 mt-3">
+                            <span>Effective Tax Rate: {formatPercentage(taxBreakdown.effectiveTaxRate)}</span>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  )}
-                </div>
 
-                {/* Tax Visualization */}
-                <div className="bg-white p-6 rounded-lg shadow-sm border">
-                  <h3 className="text-lg font-medium text-gray-900 mb-6 flex items-center">
-                    <ChartPieIcon className="h-5 w-5 mr-2" />
-                    Income Distribution
-                  </h3>
-                  
-                  {taxPieData && (
-                    <div className="h-64">
-                      <Pie 
-                        data={taxPieData} 
-                        options={{
-                          responsive: true,
-                          maintainAspectRatio: false,
-                          plugins: {
-                            legend: {
-                              position: 'bottom'
-                            }
-                          }
-                        }}
-                      />
-                    </div>
-                  )}
+                      {/* Income Distribution & Time Frame Breakdown */}
+                      <div className="space-y-4">
+                        <h4 className="font-semibold text-gray-900 text-base">Income Distribution</h4>
+                        
+                        {/* Pie Chart */}
+                        {taxPieData && (
+                          <div className="h-48 mb-4">
+                            <Pie 
+                              data={taxPieData} 
+                              options={{
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: {
+                                  legend: {
+                                    position: 'bottom',
+                                    labels: {
+                                      boxWidth: 12,
+                                      padding: 8,
+                                      font: { size: 11 }
+                                    }
+                                  }
+                                }
+                              }}
+                            />
+                          </div>
+                        )}
 
-                  {!taxBreakdown && (
-                    <div className="text-center py-12">
-                      <ChartPieIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                      <p className="text-gray-600">Calculate taxes to see income distribution</p>
+                        {/* Time Frame Breakdown */}
+                        <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-lg border-2 border-green-200">
+                          <div className="text-center mb-3">
+                            <div className="text-lg font-semibold text-gray-900 capitalize">
+                              {selectedTimeFrame.replace('-', ' ')} Take-Home Pay
+                            </div>
+                            <div className="text-3xl font-bold text-green-600">
+                              {formatCurrency(
+                                selectedTimeFrame === 'weekly' ? taxBreakdown.netIncome / 52 :
+                                selectedTimeFrame === 'semi-monthly' ? taxBreakdown.netIncome / 24 :
+                                taxBreakdown.netIncome / 12
+                              )}
+                            </div>
+                          </div>
+                          
+                          <div className="grid grid-cols-2 gap-2 text-sm">
+                            <div className="text-center">
+                              <div className="text-gray-600">Annual</div>
+                              <div className="font-semibold text-green-700">{formatCurrency(taxBreakdown.netIncome)}</div>
+                            </div>
+                            <div className="text-center">
+                              <div className="text-gray-600">Effective Rate</div>
+                              <div className="font-semibold text-gray-900">{formatPercentage(taxBreakdown.effectiveTaxRate)}</div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>

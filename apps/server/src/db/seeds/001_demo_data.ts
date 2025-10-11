@@ -136,5 +136,5 @@ export async function seed(knex: Knex): Promise<void> {
     }))
   );
 
-  console.log('✅ Seed data inserted successfully');
+  console.log('[SUCCESS] Seed data inserted successfully');
 }

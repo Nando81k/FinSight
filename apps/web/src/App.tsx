@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { ThemeProvider } from './context/ThemeContext';
 import { Layout } from './components/Layout';
 import { AuthPage } from './pages/AuthPage';
 import HomePage from './pages/HomePage';
@@ -53,13 +54,15 @@ const ProtectedApp: React.FC = () => {
  */
 export function App() {
   return (
-    <AuthProvider>
-      <Routes>
-        {/* Public authentication route */}
-        <Route path="/auth" element={<AuthPage />} />
-        {/* All other routes require authentication */}
-        <Route path="/*" element={<ProtectedApp />} />
-      </Routes>
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <Routes>
+          {/* Public authentication route */}
+          <Route path="/auth" element={<AuthPage />} />
+          {/* All other routes require authentication */}
+          <Route path="/*" element={<ProtectedApp />} />
+        </Routes>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }

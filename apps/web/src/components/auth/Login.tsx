@@ -89,6 +89,33 @@ export const Login: React.FC<LoginProps> = ({ onSwitchToRegister, onSwitchToForg
             Sign in to FinSight
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
+            Your comprehensive household financial management platform
+          </p>
+          
+          {/* Features Preview */}
+          <div className="mt-6 bg-gray-50 rounded-lg p-4">
+            <h3 className="text-sm font-medium text-gray-900 mb-3">What you can do with FinSight:</h3>
+            <div className="space-y-2">
+              <div className="flex items-center text-sm text-gray-600">
+                <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
+                <span>Calculate take-home pay with tax breakdowns</span>
+              </div>
+              <div className="flex items-center text-sm text-gray-600">
+                <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+                <span>Track household income and expenses</span>
+              </div>
+              <div className="flex items-center text-sm text-gray-600">
+                <div className="w-2 h-2 bg-purple-500 rounded-full mr-2"></div>
+                <span>Plan budgets and project savings growth</span>
+              </div>
+              <div className="flex items-center text-sm text-gray-600">
+                <div className="w-2 h-2 bg-orange-500 rounded-full mr-2"></div>
+                <span>Manage multiple household members</span>
+              </div>
+            </div>
+          </div>
+          
+          <p className="mt-4 text-center text-sm text-gray-600">
             Or{' '}
             <button
               onClick={onSwitchToRegister}
@@ -195,7 +222,7 @@ export const Login: React.FC<LoginProps> = ({ onSwitchToRegister, onSwitchToForg
                 <div className="w-full border-t border-gray-300" />
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-gray-50 text-gray-500">Or try demo</span>
+                <span className="px-2 bg-gray-50 text-gray-500">Or explore with demo</span>
               </div>
             </div>
 
@@ -211,7 +238,10 @@ export const Login: React.FC<LoginProps> = ({ onSwitchToRegister, onSwitchToForg
                   Loading demo...
                 </div>
               ) : (
-                'Demo Account (demo@finsight.com)'
+                <div className="text-center">
+                  <div className="font-medium">Try Demo Account</div>
+                  <div className="text-xs text-gray-500">Explore all features with sample data</div>
+                </div>
               )}
             </button>
           </div>

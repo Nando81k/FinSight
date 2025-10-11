@@ -66,8 +66,8 @@ app.use(errorHandler);
 
 // Start server
 app.listen(PORT, () => {
-  logger.info(`🚀 FinSight API Server running on port ${PORT}`);
-  logger.info(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
+  logger.info(`[SERVER] FinSight API Server running on port ${PORT}`);
+  logger.info(`[ENV] Environment: ${process.env.NODE_ENV || 'development'}`);
 });
 
 export { app };

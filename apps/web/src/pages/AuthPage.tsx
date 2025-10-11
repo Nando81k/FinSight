@@ -16,8 +16,7 @@ import {
   UserIcon,
   ChartBarIcon,
   CurrencyDollarIcon,
-  PresentationChartLineIcon,
-  BanknotesIcon
+  PresentationChartLineIcon
 } from '@heroicons/react/24/outline';
 
 type AuthMode = 'login' | 'register' | 'forgot-password';
@@ -124,25 +123,7 @@ export const AuthPage: React.FC = () => {
     }
   };
 
-  const handleDemoLogin = async () => {
-    setError('');
-    setIsSubmitting(true);
 
-    try {
-      const result = await login('demo@finsight.com', 'demo123');
-      
-      if (result.success) {
-        const from = (location.state as any)?.from?.pathname || '/';
-        navigate(from, { replace: true });
-      } else {
-        setError('Demo login failed. Please try again.');
-      }
-    } catch (error) {
-      setError('An unexpected error occurred. Please try again.');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
 
   return (
     <div className="min-h-screen flex">
@@ -157,31 +138,31 @@ export const AuthPage: React.FC = () => {
             </div>
             
             <p className="text-xl text-blue-100 mb-12 leading-relaxed">
-              Take control of your financial future with comprehensive planning tools and insights.
+              Comprehensive household financial management with salary calculations, budget planning, and savings projections.
             </p>
 
             <div className="space-y-6">
               <div className="flex items-center text-blue-100">
+                <CurrencyDollarIcon className="h-8 w-8 mr-4 text-blue-200" />
+                <div>
+                  <h3 className="font-semibold text-white">Salary & Tax Calculator</h3>
+                  <p className="text-sm">Calculate take-home pay with detailed tax breakdowns</p>
+                </div>
+              </div>
+              
+              <div className="flex items-center text-blue-100">
                 <ChartBarIcon className="h-8 w-8 mr-4 text-blue-200" />
                 <div>
-                  <h3 className="font-semibold text-white">Portfolio Management</h3>
-                  <p className="text-sm">Track and analyze your investments</p>
+                  <h3 className="font-semibold text-white">Household Management</h3>
+                  <p className="text-sm">Track family members, income, and expenses</p>
                 </div>
               </div>
               
               <div className="flex items-center text-blue-100">
                 <PresentationChartLineIcon className="h-8 w-8 mr-4 text-blue-200" />
                 <div>
-                  <h3 className="font-semibold text-white">Tax Planning</h3>
-                  <p className="text-sm">Optimize your tax strategy</p>
-                </div>
-              </div>
-              
-              <div className="flex items-center text-blue-100">
-                <BanknotesIcon className="h-8 w-8 mr-4 text-blue-200" />
-                <div>
-                  <h3 className="font-semibold text-white">Budget & Retirement</h3>
-                  <p className="text-sm">Plan for your financial goals</p>
+                  <h3 className="font-semibold text-white">Budget & Savings Planner</h3>
+                  <p className="text-sm">Plan budgets and project savings growth over time</p>
                 </div>
               </div>
             </div>
@@ -211,29 +192,6 @@ export const AuthPage: React.FC = () => {
                 : 'Enter your email to reset your password'
               }
             </p>
-          </div>
-
-          {/* Demo Login Button */}
-          {mode === 'login' && (
-            <button
-              type="button"
-              onClick={handleDemoLogin}
-              disabled={isSubmitting}
-              className="w-full mb-6 px-4 py-3 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {isSubmitting ? 'Signing in...' : 'Try Demo Account'}
-            </button>
-          )}
-
-          <div className="relative mb-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-300" />
-            </div>
-            {mode === 'login' && (
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">Or sign in with your account</span>
-              </div>
-            )}
           </div>
 
           {/* Error Message */}
