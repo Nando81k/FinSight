@@ -1,0 +1,12 @@
+Instrument,Order Type,Side,Quantity,Price,Executed At,Order ID,State,Fees
+AAPL,Market,buy,5.0,$145.50,2024-01-15 14:30:00,ord_001,filled,$0.00
+AAPL,Market,buy,5.5,$155.75,2024-02-20 10:15:00,ord_002,filled,$0.00
+TSLA,Market,buy,3.0,$225.80,2024-01-22 11:45:00,ord_003,filled,$0.00
+TSLA,Market,buy,2.0,$275.40,2024-03-10 16:20:00,ord_004,filled,$0.00
+MSFT,Market,buy,8.0,$310.50,2024-02-05 13:25:00,ord_005,filled,$0.00
+GOOGL,Limit,buy,3.2,$2125.75,2024-01-30 12:00:00,ord_006,filled,$0.00
+NVDA,Market,buy,6.0,$420.25,2024-02-12 09:30:00,ord_007,filled,$0.00
+NVDA,Market,buy,6.0,$550.25,2024-03-15 15:45:00,ord_008,filled,$0.00
+SPY,Market,buy,15.0,$405.80,2024-01-18 14:15:00,ord_009,filled,$0.00
+SPY,Market,buy,10.0,$430.80,2024-03-05 11:30:00,ord_010,filled,$0.00
+VTI,Market,buy,15.0,$220.30,2024-02-28 16:00:00,ord_011,filled,$0.00

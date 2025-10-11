@@ -1,0 +1,50 @@
+{
+  "name": "finsight",
+  "version": "1.0.0",
+  "description": "Personal Finance + Investing Assistant - A full-stack PERN app for portfolio tracking, salary/tax calculations, budgeting, and AI-powered financial insights",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run server:dev\" \"npm run web:dev\"",
+    "server:dev": "npm run dev --workspace=apps/server",
+    "web:dev": "npm run dev --workspace=apps/web",
+    "build": "npm run build --workspace=apps/server && npm run build --workspace=apps/web",
+    "db:up": "docker compose -f infra/docker/docker-compose.yml up -d postgres",
+    "db:down": "docker compose -f infra/docker/docker-compose.yml down",
+    "db:migrate": "npm run migrate --workspace=apps/server",
+    "db:seed": "npm run seed --workspace=apps/server",
+    "db:reset": "npm run db:down && npm run db:up && sleep 5 && npm run db:migrate && npm run db:seed",
+    "jobs": "npm run jobs --workspace=apps/jobs",
+    "test": "npm run test --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "type-check": "npm run type-check --workspaces --if-present",
+    "clean": "npm run clean --workspaces --if-present && rm -rf node_modules"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "@types/node": "^20.10.0",
+    "typescript": "^5.3.2"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "keywords": [
+    "finance",
+    "investing",
+    "portfolio",
+    "tax-calculator",
+    "budget",
+    "ai-assistant",
+    "personal-finance"
+  ],
+  "author": "Personal Project",
+  "license": "UNLICENSED",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/username/finsight.git"
+  }
+}

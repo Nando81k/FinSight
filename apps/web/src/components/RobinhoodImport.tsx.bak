@@ -1,0 +1,298 @@
+import React, { useState } from 'react';
+import { DocumentArrowUpIcon, CheckCircleIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
+
+interface ImportResult {
+  positionsImported: number;
+  ordersImported: number;
+  dividendsImported: number;
+  errors: string[];
+}
+
+interface ImportSummary {
+  totalPositions: number;
+  totalTransactions: number;
+  totalValue: number;
+  lastImport: string | null;
+}
+
+const RobinhoodImport: React.FC = () => {
+  const [uploading, setUploading] = useState(false);
+  const [result, setResult] = useState<ImportResult | null>(null);
+  const [summary, setSummary] = useState<ImportSummary | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch current import summary
+  React.useEffect(() => {
+    fetchSummary();
+  }, []);
+
+  const fetchSummary = async () => {
+    try {
+      const response = await fetch('/api/robinhood/summary', {
+        credentials: 'include',
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setSummary(data.summary);
+      }
+    } catch (err) {
+      console.error('Error fetching summary:', err);
+    }
+  };
+
+  const handleSingleFileUpload = async (file: File, type: string) => {
+    setUploading(true);
+    setError(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('csvFile', file);
+      formData.append('type', type);
+
+      const response = await fetch('/api/robinhood/upload', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setResult(data.result);
+        fetchSummary(); // Refresh summary
+      } else {
+        setError(data.error || 'Upload failed');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Upload failed');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // const handleMultipleFileUpload = async (files: { [key: string]: File }) => {
+  //   setUploading(true);
+  //   setError(null);
+
+  //   try {
+  //     const formData = new FormData();
+      
+      //   try {
+  //     const formData = new FormData();
+      
+  //     Object.entries(files).forEach(([type, file]) => {
+  //       formData.append(type, file);
+  //     });
+
+  //     const response = await fetch('/api/robinhood/import-multiple', {
+  //       method: 'POST',
+  //       body: formData,
+  //     });
+
+  //     const data = await response.json();
+
+  //     if (data.success) {
+  //       setResult(data.result);
+  //       setSummary(data.summary);
+  //       fetchSummary(); // Refresh summary
+  //     } else {
+  //       setError(data.error || 'Upload failed');
+  //     }
+  //   } catch (err) {
+  //     setError(err instanceof Error ? err.message : 'Upload failed');
+  //   } finally {
+  //     setUploading(false);
+  //   }
+  // };
+  };
+
+  const FileUploadCard: React.FC<{
+    title: string;
+    description: string;
+    accept: string;
+    onFileSelect: (file: File, type: string) => void;
+    type: string;
+  }> = ({ title, description, accept, onFileSelect, type }) => {
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (file) {
+        onFileSelect(file, type);
+      }
+    };
+
+    return (
+      <div className="border-2 border-dashed border-gray-600 rounded-lg p-6 text-center hover:border-blue-500 transition-colors">
+        <DocumentArrowUpIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+        <h3 className="text-lg font-medium text-white mb-2">{title}</h3>
+        <p className="text-gray-400 mb-4">{description}</p>
+        <input
+          type="file"
+          accept={accept}
+          onChange={handleFileChange}
+          className="hidden"
+          id={`${type}-upload`}
+          disabled={uploading}
+        />
+        <label
+          htmlFor={`${type}-upload`}
+          className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer disabled:opacity-50"
+        >
+          <DocumentArrowUpIcon className="h-4 w-4 mr-2" />
+          Choose CSV File
+        </label>
+      </div>
+    );
+  };
+
+  return (
+    <div className="p-6">
+      <div className="max-w-4xl mx-auto">
+        <h1 className="text-3xl font-bold text-white mb-8">Robinhood Data Import</h1>
+
+        {/* Current Summary */}
+        {summary && (
+          <div className="bg-gray-800 rounded-lg p-6 mb-8">
+            <h2 className="text-xl font-semibold text-white mb-4">Current Import Status</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-blue-400">{summary.totalPositions}</div>
+                <div className="text-gray-400">Positions</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-green-400">{summary.totalTransactions}</div>
+                <div className="text-gray-400">Transactions</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-yellow-400">
+                  ${summary.totalValue.toLocaleString()}
+                </div>
+                <div className="text-gray-400">Total Value</div>
+              </div>
+            </div>
+            {summary.lastImport && (
+              <div className="text-center mt-4 text-gray-400">
+                Last Import: {new Date(summary.lastImport).toLocaleString()}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Upload Instructions */}
+        <div className="bg-gray-800 rounded-lg p-6 mb-8">
+          <h2 className="text-xl font-semibold text-white mb-4">How to Export from Robinhood</h2>
+          <div className="space-y-2 text-gray-300">
+            <p>1. Log into your Robinhood account on the web</p>
+            <p>2. Go to Account → Documents → Tax Documents</p>
+            <p>3. Export your account statements as CSV files</p>
+            <p>4. Upload the CSV files below - you can upload them individually or all at once</p>
+          </div>
+        </div>
+
+        {/* File Upload Section */}
+        <div className="space-y-6">
+          <h2 className="text-xl font-semibold text-white">Upload CSV Files</h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <FileUploadCard
+              title="Positions"
+              description="Current holdings and quantities"
+              accept=".csv"
+              onFileSelect={handleSingleFileUpload}
+              type="positions"
+            />
+            
+            <FileUploadCard
+              title="Orders"
+              description="Buy/sell transaction history"
+              accept=".csv"
+              onFileSelect={handleSingleFileUpload}
+              type="orders"
+            />
+            
+            <FileUploadCard
+              title="Dividends"
+              description="Dividend payment history"
+              accept=".csv"
+              onFileSelect={handleSingleFileUpload}
+              type="dividends"
+            />
+          </div>
+        </div>
+
+        {/* Upload Status */}
+        {uploading && (
+          <div className="mt-8 bg-blue-900 border border-blue-600 rounded-lg p-4">
+            <div className="flex items-center">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-400 mr-3"></div>
+              <span className="text-blue-100">Processing CSV file...</span>
+            </div>
+          </div>
+        )}
+
+        {/* Error Display */}
+        {error && (
+          <div className="mt-8 bg-red-900 border border-red-600 rounded-lg p-4">
+            <div className="flex items-center">
+              <ExclamationTriangleIcon className="h-5 w-5 text-red-400 mr-3" />
+              <span className="text-red-100">{error}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Success Result */}
+        {result && (
+          <div className="mt-8 bg-green-900 border border-green-600 rounded-lg p-6">
+            <div className="flex items-center mb-4">
+              <CheckCircleIcon className="h-6 w-6 text-green-400 mr-3" />
+              <h3 className="text-lg font-semibold text-green-100">Import Completed Successfully!</h3>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+              <div className="text-center">
+                <div className="text-xl font-bold text-green-400">{result.positionsImported}</div>
+                <div className="text-green-200">Positions Imported</div>
+              </div>
+              <div className="text-center">
+                <div className="text-xl font-bold text-green-400">{result.ordersImported}</div>
+                <div className="text-green-200">Orders Imported</div>
+              </div>
+              <div className="text-center">
+                <div className="text-xl font-bold text-green-400">{result.dividendsImported}</div>
+                <div className="text-green-200">Dividends Imported</div>
+              </div>
+            </div>
+
+            {result.errors.length > 0 && (
+              <div className="mt-4">
+                <h4 className="text-yellow-300 font-medium mb-2">Warnings:</h4>
+                <ul className="text-yellow-200 text-sm space-y-1">
+                  {result.errors.map((error, index) => (
+                    <li key={index}>• {error}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* FIFO Calculation Info */}
+        <div className="mt-8 bg-gray-800 rounded-lg p-6">
+          <h3 className="text-lg font-semibold text-white mb-4">About Cost Basis Calculation</h3>
+          <div className="text-gray-300 space-y-2">
+            <p>
+              FinSight uses FIFO (First In, First Out) accounting to calculate your cost basis and gains.
+              This means the first shares you bought are considered the first shares you sell.
+            </p>
+            <p>
+              Upload your order history first for the most accurate cost basis calculations.
+              Position data will be cross-referenced with your transaction history.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default RobinhoodImport;

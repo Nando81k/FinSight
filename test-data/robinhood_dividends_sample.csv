@@ -1,0 +1,10 @@
+Instrument,Received On,Amount,State
+AAPL,2024-02-15,$2.50,confirmed
+AAPL,2024-05-15,$2.75,confirmed
+MSFT,2024-03-10,$5.60,confirmed
+MSFT,2024-06-10,$5.80,confirmed
+SPY,2024-01-31,$6.25,confirmed
+SPY,2024-04-30,$6.50,confirmed
+SPY,2024-07-31,$6.75,confirmed
+VTI,2024-03-25,$4.15,confirmed
+VTI,2024-06-25,$4.35,confirmed
